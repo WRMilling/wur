@@ -1,0 +1,50 @@
+# Maintainer: Christian Rebischke <chris.rebischke@archlinux.org>
+# Maintainer: Jiachen YANG <farseerfc@archlinux.org>
+# Contributor: kpcyrd <git@rxv.cc>
+# Contributor: quininer <quininer@live.com>
+pkgname='alacritty'
+pkgdesc="A cross-platform, GPU-accelerated terminal emulator"
+_pkgver=0.4.2
+pkgver="$_pkgver"
+pkgrel=1
+arch=('x86_64' 'aarch64')
+url="https://github.com/jwilm/alacritty"
+license=('Apache')
+makedepends=('rust' 'cargo' 'cmake' 'fontconfig' 'ncurses' 'desktop-file-utils' 'gdb' 'libxcb')
+depends=('freetype2' 'fontconfig' 'libxi' 'libxcursor' 'libxrandr')
+checkdepends=('ttf-dejavu') # for monospace fontconfig test
+optdepends=('ncurses: for alacritty terminfo database')
+source=("${pkgname}-${_pkgver}.tar.gz::https://github.com/jwilm/${pkgname}/archive/v${_pkgver}.tar.gz")
+sha256sums=('8dda9d580b9ec793cfdb336b000b73b7e98b4eba91c23ee04ee72a1728754ab2')
+
+export GLESVER='gles2'
+
+prepare(){
+	cd "$pkgbase-$_pkgver"
+	[ -f $GLESVER.patch ] || wget https://github.com/cyclopsian/alacritty/commit/2e15b476ea1125c6fa6c0a694e8a911079577da7.patch -O $GLESVER.patch
+	cargo clean
+	patch -p1 < $GLESVER.patch
+}
+
+build(){
+  cd "$pkgbase-$_pkgver"
+  env CARGO_INCREMENTAL=0 cargo build --release --locked
+}
+
+check(){
+  cd "$pkgbase-$_pkgver"
+  env CARGO_INCREMENTAL=0 cargo test --release --locked
+}
+
+package() {
+  cd "$pkgbase-$_pkgver"
+  desktop-file-install -m 644 --dir "$pkgdir/usr/share/applications/" "extra/linux/Alacritty.desktop"
+  install -D -m755 "target/release/alacritty" "$pkgdir/usr/bin/alacritty"
+  install -D -m644 "extra/alacritty.man" "$pkgdir/usr/share/man/man1/alacritty.1"
+  install -D -m644 "extra/linux/io.alacritty.Alacritty.appdata.xml" "$pkgdir/usr/share/appdata/io.alacritty.Alacritty.appdata.xml"
+  install -D -m644 "alacritty.yml" "$pkgdir/usr/share/doc/alacritty/example/alacritty.yml"
+  install -D -m644 "extra/completions/alacritty.bash" "$pkgdir/usr/share/bash-completion/completions/alacritty"
+  install -D -m644 "extra/completions/_alacritty" "$pkgdir/usr/share/zsh/site-functions/_alacritty"
+  install -D -m644 "extra/completions/alacritty.fish" "$pkgdir/usr/share/fish/vendor_completions.d/alacritty.fish"
+  install -D -m644 "extra/logo/alacritty-term.svg" "$pkgdir/usr/share/pixmaps/Alacritty.svg"
+}
